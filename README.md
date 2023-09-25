@@ -1,4 +1,4 @@
-<img src="./best-rq" width="450px"></img>
+<img src="./best-rq.png" width="450px"></img>
 
 ## BEST-RQ - Pytorch
 
