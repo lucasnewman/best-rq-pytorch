@@ -125,13 +125,11 @@ class BestRQ(nn.Module):
         if exists(x) and not exists(labels):
             with torch.no_grad():
                 features = self.extract_features(x)
-                # print(f"features: {features.shape} {features[0]}")
 
                 # project labels from features
 
                 features = rearrange(features, "b c n -> b n c")
                 labels = self.rpq(features)
-                # print(f"labels: {labels.shape} {labels[0, 0:100]}")
 
                 # offset for the pad id
 

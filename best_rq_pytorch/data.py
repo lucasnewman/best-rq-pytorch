@@ -5,8 +5,6 @@ from beartype import beartype
 from beartype.typing import Optional, Tuple
 from beartype.door import is_bearable
 
-from tqdm import tqdm
-
 import torch
 from torch.nn import functional as F
 from torch.nn.utils.rnn import pad_sequence
@@ -60,64 +58,6 @@ class AudioDataset(Dataset):
                 wave = F.pad(wave, (0, self.max_length - wave_length))
 
         return wave
-
-class AudioGraphemeDataset(Dataset):
-    @beartype
-    def __init__(
-        self,
-        folder,
-        audio_extension = ".flac",
-        max_length_in_seconds: Optional[int] = None,
-        grapheme_extension = ".graphemes.pt",
-        max_grapheme_length: Optional[int] = None,
-        pad_to_max_length = True
-    ):
-        super().__init__()
-        path = Path(folder)
-        assert path.exists(), 'folder does not exist'
-
-        self.audio_extension = audio_extension
-        self.grapheme_extension = grapheme_extension
-
-        # find all files with both audio and grapheme variants
-        
-        files = list(path.glob(f'**/*{audio_extension}'))
-        files = [f for f in tqdm(files) if Path(str(f).replace(audio_extension, grapheme_extension)).exists()]
-        
-        assert len(files) > 0, 'no files found'
-        print(f"Have {len(files)} files in dataset.")
-
-        self.files = files
-        self.max_grapheme_length = max_grapheme_length
-        self.max_length = (max_length_in_seconds * 24_000) if exists(max_length_in_seconds) else None
-        self.pad_to_max_length = pad_to_max_length
-
-    def __len__(self):
-        return len(self.files)
-
-    def __getitem__(self, idx):
-        file = self.files[idx]
-        wave, _ = torchaudio.load(file)
-        wave = rearrange(wave, '1 n -> n')
-        
-        if exists(self.max_length):
-            if wave.shape[0] > self.max_length:
-                wave = wave[:self.max_length]
-            elif self.pad_to_max_length:
-                # work around variable length sequences recomputing the graph on mps
-                wave = F.pad(wave, (0, self.max_length - wave.shape[0]))
-                
-        grapheme_file = str(file).replace(self.audio_extension, self.grapheme_extension)
-        grapheme_token_ids = torch.load(grapheme_file, map_location='cpu')
-        
-        if exists(self.max_grapheme_length):
-            if grapheme_token_ids.shape[0] > self.max_grapheme_length:
-                grapheme_token_ids = grapheme_token_ids[:self.max_grapheme_length]
-            elif self.pad_to_max_length:
-                # work around variable length sequences recomputing the graph on mps
-                grapheme_token_ids = F.pad(grapheme_token_ids, (0, self.max_grapheme_length - grapheme_token_ids.shape[0]))
-
-        return wave, grapheme_token_ids
     
 # data loader utilities
 
